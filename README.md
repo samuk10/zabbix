@@ -11,4 +11,4 @@ Asname: NotFound
 
 
 <!-- * TODO -->
-<!-- ! REMOVER COMMIT e INSTALAR VERSÃO ZABBIX 6.4 -->
+<!-- ! INSTALAR VERSÃO ZABBIX 6.4 -->
