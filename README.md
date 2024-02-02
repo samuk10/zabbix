@@ -2,13 +2,15 @@
 Aqui estão minhas peripécias referentes ao Zabbix e Grafana.
 
 ## How-To:
-  - alterar user e senha do seu postgres!
+  - Alterar user e senha do seu postgres:
+    - POSTGRES_USER=*zabbix*
+    - POSTGRES_PASSWORD=*"S3nh@P0sTgr3s"*
+  - Executar:
+    - $ docker volume create snmptraps
+    - $ docker network create net
+    - $ docker compose up -d
 
-# todos os diretos do monitoramento ix, asname e downdetector são dos seus respectivos donos!
-Status-ix: Daniel Pereira
-Downdetector: Gabriel Padilha
-Asname: NotFound
-
-
-<!-- * TODO -->
-<!-- ! INSTALAR VERSÃO ZABBIX 6.4 -->
+#### Todos os diretos do monitoramento ix, asname e downdetector são dos seus respectivos donos!
+- Status-ix: Daniel Pereira
+- Downdetector: Gabriel Padilha
+- Asname: NotFound

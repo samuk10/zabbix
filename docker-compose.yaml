@@ -2,9 +2,10 @@ version: '3.3'
 services:
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.3.1
     hostname: grafana
     user: root
+    restart: always
     ports:
       - 3000:3000/tcp
     volumes:
@@ -21,6 +22,7 @@ services:
     image: postgres:13-alpine
     stop_grace_period: 1m
     hostname: postgres-server
+    restart: always
     volumes:
       - ./db:/var/lib/postgresql/data
     networks:
@@ -31,10 +33,10 @@ services:
       - ./.env_postgres
 
   zabbix-server:     # The main Zabbix Server Software Service
-    image: zabbix/zabbix-server-pgsql:ubuntu-5.4-latest
-    build:
-      context: .
-      dockerfile: Dockerfile-server
+    image: samukarb/zabbix-server-pgsql:ubuntu-6.4-12
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile-server
     hostname: zabbix-server
     networks:
       - back
@@ -69,7 +71,7 @@ services:
       com.zabbix.os: "ubuntu"
 
   zabbix-web:    # The main Zabbix web UI or interface
-    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-5.4-latest
+    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-6.4-latest
     hostname: zabbix-web
     user: root
     privileged: true
@@ -101,7 +103,7 @@ services:
 
   zabbix-agent:   # Zabbix agent service that tracks usage and send to zabbix server
     hostname: zabbix-agent
-    image: zabbix/zabbix-agent:ubuntu-5.4-latest
+    image: zabbix/zabbix-agent:ubuntu-6.4-latest
     ports:
       - "10050:10050"
     networks:
@@ -114,10 +116,14 @@ services:
       - .env_agent
 
   zabbix-snmptraps:
-    image: zabbix/zabbix-snmptraps:ubuntu-5.4-latest
+    image: zabbix/zabbix-snmptraps:ubuntu-6.4-latest
+    restart: always
     ports:
       - "162:1162/udp"
     volumes:
+      - ./src/alertscripts:/usr/lib/zabbix/alertscripts:rw
+      - ./src/externalscripts:/usr/lib/zabbix/externalscripts:rw
+      - ./src/mibs:/var/lib/zabbix/mibs:ro
       - snmptraps:/var/lib/zabbix/snmptraps:rw
     networks:
       - back
