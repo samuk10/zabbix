@@ -1,0 +1,138 @@
+version: '3.3'
+services:
+
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    user: root
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - ./data:/var/lib/grafana/:rw
+      - ./src/grafana.ini:/etc/grafana/grafana.ini
+      - ./src/img/:/usr/share/grafana/public/img/:rw
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      # - ./ldap.toml:/etc/grafana/ldap.toml
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,yesoreyeram-boomtheme-panel
+
+  postgres-server:    # The Postgres Database Service
+    image: postgres:13-alpine
+    stop_grace_period: 1m
+    hostname: postgres-server
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    networks:
+      - back
+    environment:   # Username, password and database name variables
+      PG_DATA: ./db #data storage
+    env_file:
+      - ./.env_postgres
+
+  zabbix-server:     # The main Zabbix Server Software Service
+    image: zabbix/zabbix-server-pgsql:ubuntu-5.4-latest
+    build:
+      context: .
+      dockerfile: Dockerfile-server
+    hostname: zabbix-server
+    networks:
+      - back
+    restart: always
+    environment:   # The Postgres database value variable
+      ZBX_HISTORYSTORAGETYPES: log,text #Zabbix configuration variables
+      ZBX_DEBUGLEVEL: 1
+      ZBX_HOUSEKEEPINGFREQUENCY: 1
+      ZBX_MAXHOUSEKEEPERDELETE: 5000
+    env_file:
+      - ./.env_zabbix
+    depends_on:
+     - postgres-server
+    volumes:  # Volumes for scripts and related files you can add
+      - ./src/alertscripts:/usr/lib/zabbix/alertscripts:rw
+      - ./src/externalscripts:/usr/lib/zabbix/externalscripts:rw
+      - ./src/mibs:/var/lib/zabbix/mibs:ro
+      - snmptraps:/var/lib/zabbix/snmptraps:ro
+    ports:
+      - "10051:10051"
+    stop_grace_period: 30s
+    sysctls:
+      - net.ipv4.ip_local_port_range=1024 65000
+      - net.ipv4.conf.all.accept_redirects=0
+      - net.ipv4.conf.all.secure_redirects=0
+      - net.ipv4.conf.all.send_redirects=0
+    labels:
+      com.zabbix.description: "Zabbix server with PostgreSQL database support"
+      com.zabbix.company: "Zabbix LLC"
+      com.zabbix.component: "zabbix-server"
+      com.zabbix.dbtype: "pgsql"
+      com.zabbix.os: "ubuntu"
+
+  zabbix-web:    # The main Zabbix web UI or interface
+    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-5.4-latest
+    hostname: zabbix-web
+    user: root
+    privileged: true
+    networks:
+      - back
+    restart: always
+    environment:  # Postgre database variables
+      ZBX_SERVER_HOST: zabbix-server  # Zabbix related and Php variables
+      ZBX_POSTMAXSIZE: 64M
+      PHP_TZ: "America/Sao_Paulo"
+      ZBX_MAXEXECUTIONTIME: 500
+    env_file:
+      - ./.env_web
+    depends_on:
+      - postgres-server
+      - zabbix-server
+    ports:    # Port where Zabbix UI is available
+      - 8080:8080
+    stop_grace_period: 10s
+    sysctls:
+      - net.core.somaxconn=65535
+    labels:
+      com.zabbix.description: "Zabbix frontend on Nginx web-server with PostgreSQL database support"
+      com.zabbix.company: "Zabbix LLC"
+      com.zabbix.component: "zabbix-frontend"
+      com.zabbix.webserver: "nginx"
+      com.zabbix.dbtype: "pgsql"
+      com.zabbix.os: "ubuntu"
+
+  zabbix-agent:   # Zabbix agent service that tracks usage and send to zabbix server
+    hostname: zabbix-agent
+    image: zabbix/zabbix-agent:ubuntu-5.4-latest
+    ports:
+      - "10050:10050"
+    networks:
+      - back
+    user: root
+    privileged: true
+    pid: "host"
+    restart: always
+    env_file:
+      - .env_agent
+
+  zabbix-snmptraps:
+    image: zabbix/zabbix-snmptraps:ubuntu-5.4-latest
+    ports:
+      - "162:1162/udp"
+    volumes:
+      - snmptraps:/var/lib/zabbix/snmptraps:rw
+    networks:
+      - back
+    stop_grace_period: 5s
+    labels:
+      com.zabbix.description: "Zabbix snmptraps"
+      com.zabbix.company: "Zabbix LLC"
+      com.zabbix.component: "snmptraps"
+      com.zabbix.os: "ubuntu"
+
+volumes:
+  snmptraps:
+    external: true
+
+networks:
+  back:
+    external:
+      name: net

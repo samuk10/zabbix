@@ -1,0 +1,22 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+stages:
+  - qa
+
+
+deploy qa:
+  stage:  qa
+  tags:
+    - QA
+  when: on_success
+  variables:
+    GIT_STRATEGY: clone
+
+  script:
+    - docker-compose up -d --build
+
+
+

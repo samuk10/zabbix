@@ -1,0 +1,12 @@
+FROM zabbix/zabbix-server-pgsql:ubuntu-5.4-latest
+USER root
+RUN apt-get update && apt-get install whois pip3 install re requests bs4 cloudscraper
+
+# # Monitoramento do IX-BR
+# ADD ./src/externalscripts/status-ix-br.py /usr/lib/zabbix/externalscripts
+
+# # Monitoramento Sessão BGP
+# ADD ./src/externalscripts/asname /usr/lib/zabbix/externalscripts
+# RUN chown zabbix. /usr/lib/zabbix/externalscripts/asname && chmod +x /usr/lib/zabbix/externalscripts/asname
+
+USER zabbix
